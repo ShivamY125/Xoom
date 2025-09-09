@@ -18,7 +18,7 @@ const Port = process.env.NODE_PORT;
 //--------------------------------------------------------------
 // Importing Components------------------------------------ 
 
-import  {createWorkers} from "./createWorker.js";
+import {createWorkers} from "./createWorker.js";
 
 import Config from "./config/config.js";
 
@@ -40,14 +40,21 @@ const io = new Server(httpsServer, {
     cors: [`https://localhost:${process.env.NODE_PORT}`]
 })
 
+// global Values.
 // workers created below will live in this worker.
 let workers = null;
+
+// init ROuter , it is where our 1 router will live.
+
+let router = null;
+
 
 // initmediaSoup gets mediaSoup ready to do  things.
 const initMediaSoup = async()=> {
    workers = await createWorkers();
 
   // console.log(workers);
+  router = await workers[0].createRouter({mediaCodecs: Config.routerMediaCodecs})
 }
 
 initMediaSoup();
