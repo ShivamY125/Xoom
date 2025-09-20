@@ -12,7 +12,7 @@ dotenv.config();
 const app = express();
 // Serves everthing in public folder statically.
 app.use(express.static('public'));
-app.use(cors());
+app.use(cors({origin: '*'}));
 
 const Port = process.env.NODE_PORT;
 //--------------------------------------------------------------
@@ -31,9 +31,7 @@ const options = {key,cert};
 // use mkcert keys from modules.
 const httpsServer = https.createServer(options, app); 
 
-// httpsServer.get("/", (req,res)=> {
-//     res.send("returned data");
-// })
+
 
 // Setup socketio server
 const io = new Server(httpsServer, {
@@ -55,9 +53,31 @@ const initMediaSoup = async()=> {
 
   // console.log(workers);
   router = await workers[0].createRouter({mediaCodecs: Config.routerMediaCodecs})
+
 }
 
 initMediaSoup();
+
+
+
+// Socket.io listeners
+io.on("connection", (socket)=> {
+    
+    // socket is the client that just connected.
+   console.log('call recieved');
+    //  console.log(router.rtpCapabilities)
+    // when client calls emitWithAck server gets two things event name and callback.
+    socket.on('getRtpCap', (callback)=> {
+     
+      callback(router.rtpCapabilities);
+    })
+
+    // ack is acknwledgement wrking here like a callback .
+    socket.on('create-prodcur-transport', async ack=> {
+      // once we get confirmation we will create atransport.
+      ack();
+    })
+})
 
 httpsServer.listen(Port, (req,res)=> {
     console.log(`app is listening to port ${Port}`);

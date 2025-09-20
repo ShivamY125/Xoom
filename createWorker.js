@@ -18,7 +18,7 @@ export const createWorkers = ()=> new Promise(async(resolve,reject)=> {
         // rtcmina dn max port are arbitary port just for traffic routing.
         // useful fro networking rule.
         rtcMinPort: Config.WorkerSettings.rtcMinPort,
-        rtcMinPort: Config.WorkerSettings.rtcMaxPort,
+        rtcMaxPort: Config.WorkerSettings.rtcMaxPort,
         logLevel: Config.WorkerSettings.logLevel,
         Logtags: Config.WorkerSettings.logTags
        });
