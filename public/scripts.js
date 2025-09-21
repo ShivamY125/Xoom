@@ -29,10 +29,10 @@ const initConnect = ()=>{
 // Load the device with RTP capability , this is how device know allowed media codecs.
        await device.load({routerRtpCapabilities })
     console.log(device.loaded)  // this return a boolean value against device.load() call.
-//     deviceButton.disabled = true
-//     createProdButton.disabled = false
-//     createConsButton.disabled = false
-//     disconnectButton.disabled = false
+    deviceButton.disabled = true
+   createProdButton.disabled = false
+ //  createConsButton.disabled = false
+ //  disconnectButton.disabled = false
 }
 
  const createProducer = async()=>{
@@ -41,7 +41,7 @@ const initConnect = ()=>{
       // this is used to access webcom and Mic .
       // It returns a promise that resolve to a media stream.
       // GUM is get user media.
-      localStream = navigator.mediaDevices.getUserMedia({
+      localStream = await navigator.mediaDevices.getUserMedia({
          audio: true,
          video: true
       })
@@ -52,8 +52,52 @@ const initConnect = ()=>{
       console.log("GUM error",err);
     }
       // askign socekt.io for info of transport 
-    const data = await socket.emitWithAck('create-producer-transoprt');
-       console.log(data);
+    const data = await socket.emitWithAck('create-producer-transport', {});
+    // destructuring the data object.
+    
+    const {id, iceParameters, iceCandidates, dtlsParameters} = data;
+    console.log(data);
+
+       // Make a transport on the client (producer)!
+      
+       const transport = device.createSendTransport({
+        id, iceParameters, iceCandidates, dtlsParameters
+       })
+
+       producerTransport = transport;
+        // the transport connect event will NOT fire until
+        // we call transport.produce().
+
+        producerTransport.on('connect', async(dtlsParameters,callback,errback)=>{
+            //  console.log("Transport connect event has fired");
+            // connect comes with local dtlsParams we need to send this toserver to finsih the connection.
+            console.log(dtlsParameters);
+            
+            const resp = await socket.emitWithAck('connect-transport', dtlsParameters);
+              console.log(resp);
+             if(resp === "success"){
+              // callabck simply lets the app knows, the server suuceeded in connecting 
+              // so trigger the produce event.
+               callback();
+             }else if(resp==="error"){
+              // lets us know server fails in connecting so HALT everything.
+               errback();
+             }
+          })
+        
+        producerTransport.on('produce', async ({parameters,callback,errback})=> {
+              console.log("Transport produce event has fired");
+              console.log(parameters);
+        })
+
+        createProdButton.disabled = true;
+        publishButton.disabled = false;
+
+
+
+
+
+
 //     try{
 //         localStream = await navigator.mediaDevices.getUserMedia({
 //             video: true,
@@ -111,6 +155,16 @@ const initConnect = ()=>{
 //     })
 //     createProdButton.disabled = true
 //     publishButton.disabled = false
+ }
+
+ const publish = async()=> {
+       console.log("publish feed!");
+
+       const videoTrack = localStream.getVideoTracks()[0];
+       producer = await producerTransport.produce({
+        track: videoTrack
+       })
+
  }
 
 // const publish = async()=>{

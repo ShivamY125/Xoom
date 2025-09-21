@@ -62,6 +62,8 @@ initMediaSoup();
 
 // Socket.io listeners
 io.on("connection", (socket)=> {
+
+  let thisClientProducerTransport = null;
     
     // socket is the client that just connected.
    console.log('call recieved');
@@ -73,9 +75,48 @@ io.on("connection", (socket)=> {
     })
 
     // ack is acknwledgement wrking here like a callback .
-    socket.on('create-prodcur-transport', async ack=> {
+    socket.on('create-producer-transport', async (data, ack)=> {
+      
+      // Here we are creating a Producer Transport.
+      thisClientProducerTransport = await router.createWebRtcTransport({
+           enableUdp: true,
+           enableTcp: true,   // always use and prefer UDP in Webrtc.
+           preferUdp: true,
+           listenInfos: [
+            {
+              protocol: 'udp',
+              ip: '127.0.0.1'
+            },
+            {
+              protocol: 'tcp',
+              ip: '127.0.0.1'
+            }
+           ]
+      })
+          console.log(thisClientProducerTransport);
+      const clientTransportParams = {
+          id: thisClientProducerTransport.id,
+          iceParameters: thisClientProducerTransport.iceParameters,
+          iceCandidates: thisClientProducerTransport.iceCandidates,
+          dtlsParameters: thisClientProducerTransport.dtlsParameters
+      }
+
       // once we get confirmation we will create atransport.
-      ack();
+      ack(clientTransportParams);
+    })
+
+    socket.on('connect-transport', async(dtlsParameters, ack)=> {
+     // Get the Dtls info from the client,a nd finish the connection
+     // success will send succes and on fail send failure.
+     try{
+       // console.log("checking");
+          await thisClientProducerTransport.connect(dtlsParameters)
+          ack("success")
+      } catch(err){
+          console.log(err)
+          ack("error");
+      }
+      
     })
 })
 
